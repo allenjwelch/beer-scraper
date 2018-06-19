@@ -1,33 +1,20 @@
 // Dependencies
-const express = require("express");
-const mongoose = require("mongoose");
-const bodyParser = require("body-parser");
+const mongojs = require("mongojs");
 
 // Require request and cheerio. This makes the scraping possible
 const request = require("request");
 const cheerio = require("cheerio");
 
-// Initialize Express
-const app = express();
+// Database configuration
+const databaseUrl = "scraper";
+const collections = ["scrapedBeer"];
 
-// Require all models
-const db = require("./models");
+// Hook mongojs configuration to the db variable
+const db = mongojs(databaseUrl, collections);
+  db.on("error", function(error) {
+   console.log("Database Error:", error);
+  });
 
-const PORT = process.env.PORT || 3000;
-
-// Use body-parser for handling form submissions
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Use express.static to serve the public folder as a static directory
-app.use(express.static("public"));
-
-// const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines";
-
-// Set mongoose to leverage built in JavaScript ES6 Promises
-// Connect to the Mongo DB
-
-// mongoose.Promise = Promise;
-// mongoose.connect(MONGODB_URI);
 
   request("https://www.craftbeer.com/beer/beer-styles-guide", function(error, response, html) {
     let $ = cheerio.load(html);
@@ -58,8 +45,6 @@ app.use(express.static("public"));
         familyName: familyName,
         description: description,
         image: image,
-        // stats: stats,
-        // newStats: newStats,
         OG: OG, 
         FG: FG,
         ABV: ABV,
@@ -68,6 +53,30 @@ app.use(express.static("public"));
         SRM: SRM,
         examples: examples,
       });      
+
+      db.scrapedBeer.insert({
+        styleName: styleName,
+        familyName: familyName,
+        description: description,
+        image: image,
+        OG: OG, 
+        FG: FG,
+        ABV: ABV,
+        IBU: IBU,
+        BU: BU, 
+        SRM: SRM,
+        examples: examples,
+      },
+      function(err, inserted) {
+        if (err) {
+          // Log the error if one is encountered during the query
+          console.log(err);
+        }
+        else {
+          // Otherwise, log the inserted data
+          console.log(inserted);
+        }
+      });
     });
     console.log(results);
   })
